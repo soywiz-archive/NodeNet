@@ -8,23 +8,33 @@ namespace NodeNet
 {
 	public class Core
 	{
+		static bool InsideLoop = false;
+
 		static public void Loop(Action Action)
 		{
-			Action();
-
-			while (true)
+			try
 			{
-				ActionsAdded.WaitOne();
+				InsideLoop = true;
+				Action();
+
 				while (true)
 				{
-					Action CAction;
-					lock (Actions)
+					ActionsAdded.WaitOne();
+					while (true)
 					{
-						if (Actions.Count == 0) break;
-						CAction = Actions.Dequeue();
+						Action CAction;
+						lock (Actions)
+						{
+							if (Actions.Count == 0) break;
+							CAction = Actions.Dequeue();
+						}
+						CAction();
 					}
-					CAction();
 				}
+			}
+			finally
+			{
+				InsideLoop = false;
 			}
 		}
 
@@ -33,6 +43,8 @@ namespace NodeNet
 
 		static public void EnqueueTask(Action Action)
 		{
+			if (!InsideLoop) Console.Error.WriteLine("Must call Core.Loop(...)");
+
 			lock (Actions)
 			{
 				Actions.Enqueue(Action);

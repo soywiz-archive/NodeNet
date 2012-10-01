@@ -71,9 +71,9 @@ namespace NodeNet.Net
 						});
 					}, null);
 				}
-				catch (SocketException)
+				catch (SocketException SocketException)
 				{
-					if (OnEnd != null) OnEnd();
+					SocketExceptionThrown(SocketException);
 				}
 			});
 		}
@@ -86,17 +86,24 @@ namespace NodeNet.Net
 				{
 					NativeSocket.BeginDisconnect(true, (IAsyncResult) =>
 					{
-						NativeSocket.EndDisconnect(IAsyncResult);
-						Core.EnqueueTask(() =>
+						try
 						{
-							if (Action != null) Action();
-							AsyncQueue.Next();
-						});
+							NativeSocket.EndDisconnect(IAsyncResult);
+							Core.EnqueueTask(() =>
+							{
+								if (Action != null) Action();
+								AsyncQueue.Next();
+							});
+						}
+						catch (SocketException SocketException)
+						{
+							SocketExceptionThrown(SocketException);
+						}
 					}, null);
 				}
-				catch (SocketException)
+				catch (SocketException SocketException)
 				{
-					if (OnEnd != null) OnEnd();
+					SocketExceptionThrown(SocketException);
 				}
 			});
 		}
@@ -126,11 +133,16 @@ namespace NodeNet.Net
 					ReceiveAsync(Action);
 				}, null);
 			}
-			catch (SocketException)
+			catch (SocketException SocketException)
 			{
-				//Console.Error.WriteLine(SocketException);
-				if (OnEnd != null) OnEnd();
+				SocketExceptionThrown(SocketException);
 			}
+		}
+
+		private void SocketExceptionThrown(SocketException SocketException)
+		{
+			//Console.Error.WriteLine(SocketException);
+			if (OnEnd != null) OnEnd();
 		}
 
 		public event Action OnConnect;
